@@ -21,7 +21,7 @@ const MODULES = [
     desc: 'Identify suspicious websites, phishing pages, and online threats before they harm you.',
     cta: 'Detect Now',
     ctaColor: 'var(--cyan-accent)',
-    href: '/features/scam-website-detection',
+    href: '/scam-detection',
   },
   {
     icon: '📧',
@@ -41,7 +41,7 @@ const MODULES = [
     desc: 'Upload screenshots of messages or chats to detect scams and suspicious content.',
     cta: 'Detect Now',
     ctaColor: 'var(--blue-accent)',
-    href: '/features/screenshot-analysis',
+    href: '/screenshot-analysis',
   },
 ];
 

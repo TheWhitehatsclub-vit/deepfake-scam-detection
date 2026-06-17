@@ -1,0 +1,211 @@
+.crumb-bar {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 0;
+}
+.crumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.back-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.back-link:hover {
+  color: var(--purple-light);
+}
+
+.details-header {
+  padding: 40px 0 32px;
+}
+.h-title {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 800;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+.header-sub {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.info-section { padding: 0 0 40px; }
+.info-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-hover);
+  border-radius: 18px;
+  padding: 28px;
+}
+.info-card h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  font-family: var(--font-display);
+}
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.info-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.info-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.summary-section { padding: 0 0 56px; }
+.summary-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-hover);
+  border-radius: 18px;
+  padding: 28px;
+}
+.summary-card h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  font-family: var(--font-display);
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.summary-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.summary-risk {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+.summary-risk.high {
+  color: #F0594F;
+}
+.summary-risk.medium {
+  color: #F97316;
+}
+
+.checks-section { padding: 0 0 56px; }
+.checks-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-hover);
+  border-radius: 18px;
+  padding: 28px;
+}
+.checks-card h3 {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  font-family: var(--font-display);
+}
+.checks-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.checks-header {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr;
+  gap: 16px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px 8px 0 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.checks-row {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.2s;
+}
+.checks-row:last-child {
+  border-bottom: none;
+  border-radius: 0 0 8px 8px;
+}
+.checks-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+.check-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.check-result {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.check-risk {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+.check-risk.high {
+  color: #F0594F;
+}
+
+@media (max-width: 768px) {
+  .info-grid,
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+  .checks-header,
+  .checks-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .checks-header {
+    display: none;
+  }
+  .checks-row {
+    flex-direction: column;
+    padding: 12px 16px;
+  }
+  .check-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+}
