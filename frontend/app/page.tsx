@@ -11,6 +11,7 @@ const MODULES = [
     desc: 'Detect AI-generated or manipulated images and videos with high accuracy.',
     cta: 'Detect Now',
     ctaColor: 'var(--purple-light)',
+    href: '/features/deepfake-detection',
   },
   {
     icon: '🌐',
@@ -20,6 +21,7 @@ const MODULES = [
     desc: 'Identify suspicious websites, phishing pages, and online threats before they harm you.',
     cta: 'Detect Now',
     ctaColor: 'var(--cyan-accent)',
+    href: '/features/scam-website-detection',
   },
   {
     icon: '📧',
@@ -29,6 +31,7 @@ const MODULES = [
     desc: 'Analyze emails and detect phishing attempts, malicious links, and scam tricks.',
     cta: 'Detect Now',
     ctaColor: 'var(--orange-accent)',
+    href: '/features/email-phishing-detection',
   },
   {
     icon: '📱',
@@ -38,6 +41,7 @@ const MODULES = [
     desc: 'Upload screenshots of messages or chats to detect scams and suspicious content.',
     cta: 'Detect Now',
     ctaColor: 'var(--blue-accent)',
+    href: '/features/screenshot-analysis',
   },
 ];
 
@@ -60,37 +64,73 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <>
+      {/* ── Hero ── */}
+      <section className="hero">
+        <div className="orb orb-purple" style={{ width: 500, height: 500, top: '10%', right: '-10%' }} />
+        <div className="orb orb-blue" style={{ width: 400, height: 400, bottom: '0%', left: '-10%' }} />
+        <div className="container hero-inner">
+          <div>
+            <span className="section-label">AI-Powered Digital Safety</span>
+            <h1 className="hero-title">
+              Your AI Shield Against <span className="gradient-text">Digital Threats</span>
+            </h1>
+            <p className="hero-desc">
+              TrustShield AI detects deepfakes, scam websites, phishing emails, and suspicious
+              screenshots in real-time — so you can browse, click, and share with confidence.
+            </p>
+            <div className="hero-pills">
+              <div className="hero-pill">
+                <span className="pill-icon">🧠</span>
+                <div>
+                  <div className="pill-label">AI-Powered</div>
+                  <div className="pill-sub">Advanced detection</div>
+                </div>
+              </div>
+              <div className="hero-pill">
+                <span className="pill-icon">⚡</span>
+                <div>
+                  <div className="pill-label">Real-Time</div>
+                  <div className="pill-sub">Instant analysis</div>
+                </div>
+              </div>
+              <div className="hero-pill">
+                <span className="pill-icon">🔒</span>
+                <div>
+                  <div className="pill-label">Privacy First</div>
+                  <div className="pill-sub">Your data, your control</div>
+                </div>
+              </div>
+            </div>
+            <div className="hero-ctas">
+              <Link href="/features" className="btn-primary">Explore Features →</Link>
+              <Link href="/how-it-works" className="btn-outline">See How It Works</Link>
+            </div>
+          </div>
+
+          <div className="hero-visual">
+            <div className="shield-container">
+              <div className="shield-ring ring-1" />
+              <div className="shield-ring ring-2" />
+              <div className="shield-ring ring-3" />
+              <div className="shield-core">
+                <svg width="180" height="180" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L4 6V12C4 15.77 7.58 19.5 12 21C16.42 19.5 20 15.77 20 12V6L12 2Z" fill="url(#hero-shield-grad)" />
+                  <path d="M9 12L11 14L15 10" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <defs>
+                    <linearGradient id="hero-shield-grad" x1="4" y1="2" x2="20" y2="21" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="#7c3aed" />
+                      <stop offset="1" stopColor="#3b82f6" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+              <div className="float-badge float-1">🎬 Deepfake Check</div>
+              <div className="float-badge float-2">🌐 Scam Scan</div>
+              <div className="float-badge float-3">📧 Phishing Alert</div>
+              <div className="float-badge float-4">✅ 99.2% Accurate</div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -111,9 +151,9 @@ export default function Home() {
                 </div>
                 <h3 className="module-title">{mod.title}</h3>
                 <p className="module-desc">{mod.desc}</p>
-                <a href="#" className="module-cta" style={{ color: mod.ctaColor }}>
+                <Link href={mod.href} className="module-cta" style={{ color: mod.ctaColor }}>
                   {mod.cta} →
-                </a>
+                </Link>
               </div>
             ))}
           </div>
@@ -166,6 +206,7 @@ export default function Home() {
           padding: 60px 0;
         }
         .hero-title {
+          font-family: var(--font-display);
           font-size: clamp(36px, 5vw, 64px);
           font-weight: 800;
           line-height: 1.1;

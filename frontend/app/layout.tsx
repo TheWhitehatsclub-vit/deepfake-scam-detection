@@ -10,6 +10,18 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+          rel="stylesheet"
+        />
+        <link
+          rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.1.0/iconfont/tabler-icons.min.css"
+        />
+      </head>
       <body>
         <Navbar />
         <main>{children}</main>
@@ -18,15 +30,32 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="footer-inner">
               <div className="footer-brand">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                  <div style={{ width: 32, height: 32, background: 'rgba(124,58,237,0.15)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(124,58,237,0.3)' }}>🛡️</div>
-                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>TrustShield AI</span>
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      background: 'rgba(124,58,237,0.15)',
+                      borderRadius: 8,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '1px solid rgba(124,58,237,0.3)',
+                    }}
+                  >
+                    🛡️
+                  </div>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>
+                    TrustShield AI
+                  </span>
                 </div>
-                <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.7 }}>Building a safer digital world with the power of artificial intelligence.</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.7 }}>
+                  Building a safer digital world with the power of artificial intelligence.
+                </p>
               </div>
               <div className="footer-links">
                 <h4>Product</h4>
                 <ul>
-                  <li><a href="/#features">Features</a></li>
+                  <li><a href="/features">Features</a></li>
                   <li><a href="/how-it-works">How It Works</a></li>
                   <li><a href="/about">About Us</a></li>
                 </ul>
