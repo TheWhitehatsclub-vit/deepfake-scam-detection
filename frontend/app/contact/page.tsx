@@ -223,6 +223,76 @@ export default function ContactPage() {
         .contact-grid { display: grid; grid-template-columns: 1fr 340px; gap: 40px; align-items: start; }
         .form-card { padding: 36px; }
 
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        .form-label {
+          display: block;
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--text-primary);
+          margin-bottom: 0;
+        }
+        .form-input {
+          width: 100%;
+          height: 48px;
+          padding: 0 16px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          color: var(--text-primary);
+          font-size: 14px;
+          font-family: var(--font-body);
+          outline: none;
+          transition: var(--transition);
+        }
+        .form-input::placeholder {
+          color: var(--text-muted);
+        }
+        .form-input:focus {
+          border-color: var(--border-hover);
+          background: rgba(255, 255, 255, 0.05);
+        }
+        .form-select {
+          width: 100%;
+          height: 48px;
+          padding: 0 16px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          color: var(--text-primary);
+          font-size: 14px;
+          font-family: var(--font-body);
+          outline: none;
+          transition: var(--transition);
+          appearance: none;
+          cursor: pointer;
+        }
+        .form-select:focus {
+          border-color: var(--border-hover);
+          background: rgba(255, 255, 255, 0.05);
+        }
+        .form-textarea {
+          width: 100%;
+          min-height: 140px;
+          padding: 12px 16px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          color: var(--text-primary);
+          font-size: 14px;
+          font-family: var(--font-body);
+          outline: none;
+          transition: var(--transition);
+          resize: none;
+          line-height: 1.6;
+        }
+        .form-textarea::placeholder {
+          color: var(--text-muted);
+        }
+        .form-textarea:focus {
+          border-color: var(--border-hover);
+          background: rgba(255, 255, 255, 0.05);
+        }
+
         .success-msg { text-align: center; padding: 32px 0; display: flex; flex-direction: column; align-items: center; gap: 12px; }
         .success-icon { font-size: 56px; }
         .success-msg h3 { font-size: 22px; font-weight: 700; }

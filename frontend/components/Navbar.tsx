@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 
 const NAV_LINKS = [
   { label: 'Home', href: '/' },
-  { label: 'Features', href: '/features' },
+  { label: 'Features', href: '/#protection-modules' },
   { label: 'How It Works', href: '/how-it-works' },
   { label: 'About Us', href: '/about' },
   { label: 'Contact', href: '/contact' },
@@ -142,29 +142,43 @@ export default function Navbar() {
           list-style: none;
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 32px;
           flex: 1;
           justify-content: center;
         }
         .nav-link {
-          padding: 8px 14px;
+          padding: 8px 0;
           border-radius: 8px;
           font-size: 14px;
           font-weight: 500;
+          letter-spacing: 0.02em;
           color: var(--text-secondary);
           text-decoration: none;
           transition: all 0.2s;
           position: relative;
         }
-        .nav-link:hover { color: white; background: rgba(255,255,255,0.05); }
-        .nav-link-active { color: white; }
-        .nav-link-active::after {
+        .nav-link:hover {
+          color: var(--purple-light);
+        }
+        .nav-link::after {
           content: '';
           position: absolute;
-          bottom: -2px; left: 50%; transform: translateX(-50%);
-          width: 20px; height: 2px;
+          bottom: -2px;
+          left: 0;
+          width: 0;
+          height: 2px;
           background: var(--gradient-text);
           border-radius: 1px;
+          transition: width 0.3s ease;
+        }
+        .nav-link:hover::after {
+          width: 100%;
+        }
+        .nav-link-active {
+          color: white;
+        }
+        .nav-link-active::after {
+          width: 100%;
         }
         .nav-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
         .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; background: none; border: none; padding: 4px; }

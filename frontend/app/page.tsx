@@ -31,7 +31,7 @@ const MODULES = [
     desc: 'Analyze emails and detect phishing attempts, malicious links, and scam tricks.',
     cta: 'Detect Now',
     ctaColor: 'var(--orange-accent)',
-    href: '/features/email-phishing-detection',
+    href: '/phishing',
   },
   {
     icon: '📱',
@@ -135,7 +135,7 @@ export default function Home() {
       </section>
 
       {/* ── Core Protection Modules ── */}
-      <section className="section" id="features" style={{ background: 'var(--bg-secondary)' }}>
+      <section className="section" id="protection-modules" style={{ background: 'var(--bg-secondary)' }}>
         <div className="container">
           <div className="section-header reveal">
             <span className="section-label">Protection Modules</span>
