@@ -1,23 +1,50 @@
 'use client';
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { CloudUpload, X } from 'lucide-react';
+import { CloudUpload, X, AlertCircle } from 'lucide-react';
 
 interface UploadAreaProps {
   onImageUpload: (imageData: string) => void;
+  onFileSelect?: (file: File | null) => void;
 }
 
-export default function UploadArea({ onImageUpload }: UploadAreaProps) {
+export default function UploadArea({ onImageUpload, onFileSelect }: UploadAreaProps) {
   const [preview, setPreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
+    setUploadError(null);
+    
+    if (rejectedFiles.length > 0) {
+      const error = rejectedFiles[0].errors[0];
+      if (error.code === 'file-too-large') {
+        setUploadError('File size exceeds 200MB limit');
+      } else if (error.code === 'file-invalid-type') {
+        setUploadError('Invalid file type. Supported: JPG, JPEG, PNG, WEBP, MP4');
+      } else {
+        setUploadError('File upload failed');
+      }
+      return;
+    }
+
     const file = acceptedFiles[0];
     if (file) {
+      setSelectedFile(file);
+      onFileSelect?.(file);
+      setIsUploading(true);
+      
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
         setPreview(result);
         onImageUpload(result);
+        setIsUploading(false);
+      };
+      reader.onerror = () => {
+        setUploadError('Failed to read file');
+        setIsUploading(false);
       };
       reader.readAsDataURL(file);
     }
@@ -28,14 +55,28 @@ export default function UploadArea({ onImageUpload }: UploadAreaProps) {
     accept: {
       'image/png': ['.png'],
       'image/jpeg': ['.jpg', '.jpeg'],
+      'image/webp': ['.webp'],
+      'video/mp4': ['.mp4'],
     },
     maxFiles: 1,
-    maxSize: 10 * 1024 * 1024, // 10MB
+    maxSize: 200 * 1024 * 1024, // 200MB
   });
 
   const clearPreview = () => {
     setPreview(null);
+    setSelectedFile(null);
+    setUploadError(null);
+    setIsUploading(false);
+    onFileSelect?.(null);
     onImageUpload('');
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
   if (preview) {
@@ -44,6 +85,12 @@ export default function UploadArea({ onImageUpload }: UploadAreaProps) {
         <button className="clear-preview" onClick={clearPreview}>
           <X size={16} />
         </button>
+        {selectedFile && (
+          <div className="file-info">
+            <div className="file-name">{selectedFile.name}</div>
+            <div className="file-size">{formatFileSize(selectedFile.size)}</div>
+          </div>
+        )}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={preview} alt="Screenshot preview" />
       </div>
@@ -62,8 +109,16 @@ export default function UploadArea({ onImageUpload }: UploadAreaProps) {
         <span className="format-tag">PNG</span>
         <span className="format-tag">JPG</span>
         <span className="format-tag">JPEG</span>
-        <span className="format-tag">Max 10MB</span>
+        <span className="format-tag">WEBP</span>
+        <span className="format-tag">MP4</span>
+        <span className="format-tag">Max 200MB</span>
       </div>
+      {uploadError && (
+        <div className="upload-error">
+          <AlertCircle size={16} />
+          <span>{uploadError}</span>
+        </div>
+      )}
     </div>
   );
 }

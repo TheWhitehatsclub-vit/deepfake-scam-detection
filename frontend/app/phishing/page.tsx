@@ -12,13 +12,41 @@ import './phishing.css';
 export default function PhishingDetectionPage() {
   const router = useRouter();
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [text, setText] = useState('');
   const [activeTab, setActiveTab] = useState<'upload' | 'text'>('upload');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadResponse, setUploadResponse] = useState<any>(null);
 
   const hasInput = uploadedImage !== null || text.length > 0;
 
-  const handleAnalyze = () => {
-    if (hasInput) {
+  const handleAnalyze = async () => {
+    if (hasInput && selectedFile) {
+      setIsUploading(true);
+      setUploadResponse(null);
+
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        const response = await fetch('/api/deepfake/analyze', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await response.json();
+        setUploadResponse(data);
+
+        if (data.success) {
+          router.push('/phishing/results');
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+        setUploadResponse({ success: false, error: 'Failed to upload file' });
+      } finally {
+        setIsUploading(false);
+      }
+    } else if (hasInput) {
       router.push('/phishing/results');
     }
   };
@@ -58,21 +86,38 @@ export default function PhishingDetectionPage() {
       <section className="upload-section">
         <div className="container">
           {activeTab === 'upload' && (
-            <UploadArea onImageUpload={setUploadedImage} />
+            <UploadArea onImageUpload={setUploadedImage} onFileSelect={setSelectedFile} />
           )}
           {activeTab === 'text' && (
             <TextInputAnalyzer onTextChange={setText} />
           )}
           
           <div className="action-row">
-            <button className="btn-primary btn-lg" disabled={!hasInput} onClick={handleAnalyze}>
-              Analyze Message <i className="ti ti-arrow-right" style={{ fontSize: 14 }} />
+            <button className="btn-primary btn-lg" disabled={!hasInput || isUploading} onClick={handleAnalyze}>
+              {isUploading ? 'Uploading...' : 'Analyze Message'} <i className="ti ti-arrow-right" style={{ fontSize: 14 }} />
             </button>
             <div className="privacy-note">
               <i className="ti ti-lock" style={{ fontSize: 14 }} />
               <span>Your data is private and never stored.</span>
             </div>
           </div>
+
+          {uploadResponse && (
+            <div className="upload-response">
+              {uploadResponse.success ? (
+                <div className="upload-response-success">
+                  <div>File uploaded successfully!</div>
+                  <div>File: {uploadResponse.fileName}</div>
+                  <div>Type: {uploadResponse.fileType}</div>
+                  <div>Size: {uploadResponse.fileSize} bytes</div>
+                </div>
+              ) : (
+                <div className="upload-response-error">
+                  Error: {uploadResponse.error}
+                </div>
+              )}
+            </div>
+          )}
 
           <WhatWeAnalyze />
         </div>
