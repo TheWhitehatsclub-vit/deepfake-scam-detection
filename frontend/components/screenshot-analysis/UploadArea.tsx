@@ -5,9 +5,10 @@ import { CloudUpload, X } from 'lucide-react';
 
 interface UploadAreaProps {
   onImageUpload: (imageData: string) => void;
+  onFileUpload?: (file: File) => void;
 }
 
-export default function UploadArea({ onImageUpload }: UploadAreaProps) {
+export default function UploadArea({ onImageUpload, onFileUpload }: UploadAreaProps) {
   const [preview, setPreview] = useState<string | null>(null);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -18,10 +19,13 @@ export default function UploadArea({ onImageUpload }: UploadAreaProps) {
         const result = reader.result as string;
         setPreview(result);
         onImageUpload(result);
+        if (onFileUpload) {
+          onFileUpload(file);
+        }
       };
       reader.readAsDataURL(file);
     }
-  }, [onImageUpload]);
+  }, [onImageUpload, onFileUpload]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

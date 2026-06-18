@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extractMetadata } from '@/lib/metadata';
 import { analyzeDetectionSignals, getVideoAnalysisMessage } from '@/lib/detectionSignals';
-import { calculateAuthenticityScore, getVideoDefaultScores } from '@/lib/authenticityScoring';
+import { getVideoDefaultScores } from '@/lib/authenticityScoring';
 import { generateExplainableFindings, getVideoFindings } from '@/lib/explainableFindings';
 
 const ALLOWED_FORMATS = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB
+const FASTAPI_BACKEND_URL = 'http://127.0.0.1:8000/predict';
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,10 +47,19 @@ export async function POST(request: NextRequest) {
     
     if (file.type.startsWith('video/')) {
       signalAnalysis = getVideoAnalysisMessage();
-      scoringOutput = getVideoDefaultScores();
+      scoringOutput = {
+        ...getVideoDefaultScores(),
+        fakeProbability: null,
+        realProbability: null,
+        heatmapUrl: null,
+        heatmapGenerated: false,
+        faceFound: false,
+        facesDetected: 0,
+        faceBoxes: [],
+      };
       explainableFindings = getVideoFindings();
     } else {
-      // For images, run detection signal analysis and scoring
+      // For images, run detection signal analysis and get AI prediction from FastAPI
       const buffer = Buffer.from(await file.arrayBuffer());
       const hasEXIF = !!metadata.exif && Object.keys(metadata.exif).length > 0;
       const hasGPS = !!metadata.exif?.gpsCoordinates;
@@ -57,14 +67,51 @@ export async function POST(request: NextRequest) {
       
       signalAnalysis = await analyzeDetectionSignals(buffer, hasEXIF, hasGPS, hasCameraModel);
       
-      // Calculate authenticity scores
-      scoringOutput = await calculateAuthenticityScore({
-        hasEXIF,
-        hasGPS,
-        hasCameraModel,
-        signals: signalAnalysis.signals,
-        imageBuffer: buffer,
-      });
+      // Upload image to FastAPI backend for AI-based deepfake detection
+      try {
+        const fastApiFormData = new FormData();
+        // Create a new File object from the buffer for FastAPI
+        const imageBlob = new Blob([buffer], { type: file.type });
+        fastApiFormData.append('file', imageBlob, file.name);
+
+        console.log('Sending image to FastAPI backend:', FASTAPI_BACKEND_URL);
+        const fastApiResponse = await fetch(FASTAPI_BACKEND_URL, {
+          method: 'POST',
+          body: fastApiFormData,
+        });
+
+        if (!fastApiResponse.ok) {
+          throw new Error(`FastAPI responded with status: ${fastApiResponse.status}`);
+        }
+
+        const fastApiResult = await fastApiResponse.json();
+        console.log('FastAPI response:', fastApiResult);
+
+        // Extract scores from FastAPI response
+        scoringOutput = {
+          authenticityScore: Math.round(fastApiResult.authenticity_score || 0),
+          confidenceScore: Math.round(fastApiResult.confidence_score || 0),
+          riskLevel: (fastApiResult.risk_level || 'medium') as 'low' | 'medium' | 'high',
+          fakeProbability: fastApiResult.fake_probability ?? null,
+          realProbability: fastApiResult.real_probability ?? null,
+          heatmapUrl: fastApiResult.heatmap_url ?? null,
+          heatmapGenerated: fastApiResult.heatmap_generated ?? false,
+          faceFound: fastApiResult.face_found ?? false,
+          facesDetected: fastApiResult.faces_detected ?? 0,
+          faceBoxes: fastApiResult.face_boxes ?? [],
+        };
+
+        console.log('Scoring output from FastAPI:', scoringOutput);
+      } catch (error) {
+        console.error('FastAPI backend error:', error);
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'AI backend unavailable. Please ensure the FastAPI server is running at http://127.0.0.1:8000' 
+          },
+          { status: 500 }
+        );
+      }
 
       // Generate explainable findings
       const hasCompressionIssues = signalAnalysis.signals.some(s => 
@@ -101,7 +148,14 @@ export async function POST(request: NextRequest) {
       authenticityScore: scoringOutput.authenticityScore,
       confidenceScore: scoringOutput.confidenceScore,
       riskLevel: scoringOutput.riskLevel,
+      fakeProbability: scoringOutput.fakeProbability,
+      realProbability: scoringOutput.realProbability,
       explainableFindings: explainableFindings,
+      heatmap_url: scoringOutput.heatmapUrl,
+      heatmap_generated: scoringOutput.heatmapGenerated,
+      face_found: scoringOutput.faceFound,
+      faces_detected: scoringOutput.facesDetected,
+      face_boxes: scoringOutput.faceBoxes,
     });
   } catch (error) {
     console.error('Error processing file upload:', error);

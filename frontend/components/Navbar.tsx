@@ -7,6 +7,7 @@ const NAV_LINKS = [
   { label: 'Home', href: '/' },
   { label: 'Features', href: '/#protection-modules' },
   { label: 'How It Works', href: '/how-it-works' },
+  { label: 'Screenshot Analysis', href: '/screenshot-analysis' },
   { label: 'About Us', href: '/about' },
   { label: 'Contact', href: '/contact' },
 ];

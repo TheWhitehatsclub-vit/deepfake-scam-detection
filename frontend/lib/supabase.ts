@@ -14,5 +14,9 @@ export interface AnalysisHistoryRecord {
   confidence_score: number;
   risk_level: 'low' | 'medium' | 'high';
   metadata_summary: string;
+  report_id?: string;
+  pdf_path?: string;
+  heatmap_path?: string;
+  full_metadata?: any;
   created_at?: string;
 }

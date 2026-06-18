@@ -254,7 +254,14 @@ export interface DeepfakeAnalysisResponse {
   authenticityScore?: number;
   confidenceScore?: number;
   riskLevel?: 'low' | 'medium' | 'high';
+  fakeProbability?: number | null;
+  realProbability?: number | null;
   explainableFindings?: ExplainableFinding[];
+  face_found?: boolean;
+  faces_detected?: number;
+  face_boxes?: number[][];
+  heatmap_url?: string;
+  heatmap_generated?: boolean;
   result?: AnalysisResult;
   error?: string;
 }

@@ -3,8 +3,10 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { AnalysisResult, DeepfakeAnalysisResponse } from '@/types/deepfake';
-import { saveAnalysisRecord, fetchAnalysisHistory, analysisResultToHistoryRecord } from '@/lib/analysisHistory';
+import { saveAnalysisRecord, fetchAnalysisHistory, analysisResultToHistoryRecord, updateAnalysisRecordPdfPath } from '@/lib/analysisHistory';
 import { generateReport } from '@/lib/generateReport';
+import FaceDetectionOverlay from '@/components/FaceDetectionOverlay';
+import AISafetyAssistant from '@/components/AISafetyAssistant';
 
 export default function DeepfakeDetectionClient() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -15,6 +17,10 @@ export default function DeepfakeDetectionClient() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [historyData, setHistoryData] = useState<any[]>([]);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [faceBoxes, setFaceBoxes] = useState<number[][] | null>(null);
+  const [heatmapUrl, setHeatmapUrl] = useState<string | null>(null);
+  const [heatmapGenerated, setHeatmapGenerated] = useState<boolean>(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Fetch analysis history on component mount
   useEffect(() => {
@@ -44,6 +50,9 @@ export default function DeepfakeDetectionClient() {
       setSelectedFile(file);
       setUploadResponse(null);
       setAnalysisResult(null);
+      setFaceBoxes(null);
+      setHeatmapUrl(null);
+      setHeatmapGenerated(false);
       
       // Create preview URL
       if (imagePreviewUrl) {
@@ -72,6 +81,9 @@ export default function DeepfakeDetectionClient() {
       setSelectedFile(file);
       setUploadResponse(null);
       setAnalysisResult(null);
+      setFaceBoxes(null);
+      setHeatmapUrl(null);
+      setHeatmapGenerated(false);
       
       // Create preview URL
       if (imagePreviewUrl) {
@@ -99,11 +111,39 @@ export default function DeepfakeDetectionClient() {
       });
 
       const data: DeepfakeAnalysisResponse = await response.json();
+      console.log("API Response:", data);
       setUploadResponse(data);
       console.log('ANALYSIS_COMPLETE', { success: data.success, authenticityScore: data.authenticityScore, confidenceScore: data.confidenceScore, riskLevel: data.riskLevel });
 
+      // Extract face boxes from API response
+      if (data.face_boxes) {
+        setFaceBoxes(data.face_boxes);
+        console.log('FACE_BOXES', data.face_boxes);
+      }
+
+      // Extract heatmap data from API response
+      if (data.heatmap_url) {
+        const API_BASE_URL = 'http://127.0.0.1:8000';
+        const fullHeatmapUrl = data.heatmap_url.startsWith('http')
+          ? data.heatmap_url
+          : `${API_BASE_URL}${data.heatmap_url}`;
+        console.log('Heatmap URL from backend:', data.heatmap_url);
+        console.log('Final Heatmap URL:', fullHeatmapUrl);
+        setHeatmapUrl(fullHeatmapUrl);
+      }
+      if (data.heatmap_generated !== undefined) {
+        setHeatmapGenerated(data.heatmap_generated);
+        console.log('HEATMAP_GENERATED', data.heatmap_generated);
+      }
+
       // Set mock analysis result after successful upload with real metadata, signals, scores, and findings
       if (data.success) {
+        console.log("FASTAPI_RESPONSE", data);
+        console.log("VALUES_BEING_SENT", {
+  authenticityScore: data.authenticityScore,
+  confidenceScore: data.confidenceScore,
+  riskLevel: data.riskLevel,
+});
         const result = createMockAnalysisResult(
           selectedFile.name,
           selectedFile.size,
@@ -128,7 +168,11 @@ export default function DeepfakeDetectionClient() {
             data.authenticityScore,
             data.confidenceScore,
             data.riskLevel,
-            metadataSummary
+            metadataSummary,
+            undefined, // report_id - will be set after PDF generation
+            undefined, // pdf_path - will be set after PDF generation
+            data.heatmap_url,
+            data
           );
           const saveResult = await saveAnalysisRecord(record);
           console.log('SUPABASE_RESPONSE', saveResult);
@@ -247,18 +291,106 @@ export default function DeepfakeDetectionClient() {
   });
 
   const handleDownloadReport = async () => {
-    if (!analysisResult || !selectedFile) return;
+    if (!analysisResult || !selectedFile || !uploadResponse) return;
 
-    await generateReport({
-      fileName: analysisResult.fileName,
-      imageUrl: imagePreviewUrl,
-      authenticityScore: analysisResult.scores.authenticityScore,
-      confidenceScore: analysisResult.scores.confidenceScore,
-      riskLevel: analysisResult.riskAssessment.level,
-      metadataAnalysis: analysisResult.metadataAnalysis,
-      detectionSignals: analysisResult.detectionSignals,
-      explainableFindings: analysisResult.explainableFindings,
-    });
+    try {
+      const { blob, reportId, fileName } = await generateReport({
+        fileName: analysisResult.fileName,
+        imageUrl: imagePreviewUrl,
+        authenticityScore: analysisResult.scores.authenticityScore,
+        confidenceScore: analysisResult.scores.confidenceScore,
+        riskLevel: analysisResult.riskAssessment.level,
+        metadataAnalysis: analysisResult.metadataAnalysis,
+        detectionSignals: analysisResult.detectionSignals,
+        explainableFindings: analysisResult.explainableFindings,
+        heatmapUrl: heatmapUrl,
+        faceFound: uploadResponse.face_found,
+        facesDetected: uploadResponse.faces_detected,
+        fullMetadata: uploadResponse.metadata,
+      });
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      // Update history record with PDF path and report ID
+      const historyData = await fetchAnalysisHistory(1);
+      if (historyData.data.length > 0) {
+        const latestRecord = historyData.data[0];
+        if (latestRecord.id) {
+          await updateAnalysisRecordPdfPath(latestRecord.id, fileName, reportId);
+        }
+      }
+
+      console.log('Report generated and saved:', { reportId, fileName });
+    } catch (error) {
+      console.error('Error generating report:', error);
+    }
+  };
+
+  const handleHistoryDownload = async (record: any) => {
+    try {
+      // Check if PDF already exists
+      if (record.pdf_path && record.report_id) {
+        // Download existing PDF
+        // For now, we'll regenerate since we don't have file storage
+        console.log('PDF exists, regenerating for download:', record.pdf_path);
+      }
+
+      // Regenerate PDF from stored analysis data
+      if (record.full_metadata) {
+        const { blob, reportId, fileName } = await generateReport({
+          fileName: record.filename,
+          imageUrl: null, // We don't have the original image in history
+          authenticityScore: record.authenticity_score,
+          confidenceScore: record.confidence_score,
+          riskLevel: record.risk_level,
+          metadataAnalysis: {
+            fileName: record.filename,
+            created: record.full_metadata?.exif?.creationDate || 'Not Available',
+            modified: record.full_metadata?.exif?.modificationDate || 'Not Available',
+            modifiedFlagged: false,
+            editingSoftware: record.full_metadata?.exif?.editingSoftware || 'Not Available',
+            editingSoftwareFlagged: false,
+            cameraModel: record.full_metadata?.exif?.cameraModel || 'Not Available',
+            gpsData: record.full_metadata?.exif?.gpsCoordinates ? 'Available' : 'Not Available',
+            resolution: record.full_metadata?.image ? `${record.full_metadata.image.width}x${record.full_metadata.image.height}` : 'Unknown',
+            fileHash: 'Not Available',
+          },
+          detectionSignals: record.full_metadata?.signals || [],
+          explainableFindings: record.full_metadata?.explainableFindings || [],
+          heatmapUrl: record.heatmap_path || null,
+          faceFound: record.full_metadata?.face_found,
+          facesDetected: record.full_metadata?.faces_detected,
+          fullMetadata: record.full_metadata,
+        });
+
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        // Update history record with PDF path and report ID
+        if (record.id) {
+          await updateAnalysisRecordPdfPath(record.id, fileName, reportId);
+        }
+
+        console.log('History report generated and saved:', { reportId, fileName });
+      }
+    } catch (error) {
+      console.error('Error generating history report:', error);
+    }
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -392,6 +524,11 @@ export default function DeepfakeDetectionClient() {
                 )}
               </div>
             )}
+            {uploadResponse?.success && imagePreviewUrl && (
+              <div style={{ marginTop: '16px' }}>
+                <FaceDetectionOverlay imageUrl={imagePreviewUrl} faceBoxes={faceBoxes} />
+              </div>
+            )}
             <div className="model-row">
               <div className="model-chip">
                 <div className="model-chip-left"><i className="ti ti-cpu" /><span>Deepfake Detection Model</span></div>
@@ -509,8 +646,176 @@ export default function DeepfakeDetectionClient() {
             </div>
           </div>
 
+          <div className="score-card">
+            <div className="score-card-head"><span><i className="ti ti-face-id" style={{ color: 'var(--purple-light)' }} />Face Analysis</span></div>
+            <div className="ring-wrap">
+              <div className="ring">
+                <svg width="88" height="88"><circle cx="44" cy="44" r="38" stroke="rgba(255,255,255,0.07)" strokeWidth="8" fill="none" /><circle cx="44" cy="44" r="38" stroke={uploadResponse?.face_found ? '#14C8A8' : '#F0934A'} strokeWidth="8" fill="none" strokeLinecap="round" strokeDasharray="238.7" strokeDashoffset={uploadResponse?.face_found ? 0 : 238.7} /></svg>
+                <div className="ring-num"><i className="ti ti-face-id" style={{ fontSize: 26, color: uploadResponse?.face_found ? '#14C8A8' : '#F0934A' }} /></div>
+              </div>
+              <div className="ring-label">
+                <strong>Face Found: {uploadResponse?.face_found ? 'Yes' : 'No'}</strong>
+                <span>Faces Detected: {uploadResponse?.faces_detected ?? 0}</span>
+                {(() => {
+                  const faceCount = uploadResponse?.faces_detected ?? 0;
+                  if (faceCount > 1) {
+                    return <span>Group image detected</span>;
+                  } else if (faceCount === 1) {
+                    return <span>Single face detected</span>;
+                  } else {
+                    return <span>No recognizable human faces were found.</span>;
+                  }
+                })()}
+                <span className={`badge ${uploadResponse?.faces_detected && uploadResponse.faces_detected > 0 ? 'badge-teal' : 'badge-orange'}`}>{uploadResponse?.faces_detected && uploadResponse.faces_detected > 0 ? 'Faces detected' : 'No faces detected'}</span>
+              </div>
+            </div>
+          </div>
+
         </div>
       </section>
+
+      {/* AI SAFETY ASSISTANT */}
+      {uploadResponse?.success && uploadResponse.riskLevel && (
+        <section className="ds-section">
+          <div className="container">
+            <AISafetyAssistant 
+              riskLevel={uploadResponse.riskLevel} 
+              analysisType="deepfake"
+              findings={uploadResponse}
+            />
+          </div>
+        </section>
+      )}
+
+      {/* AI ATTENTION HEATMAP */}
+      {uploadResponse?.success && heatmapGenerated && heatmapUrl && (
+        <section className="ds-section">
+          <div className="container">
+            <div className="section-head-row">
+              <div>
+                <h2><i className="ti ti-flame" />AI Attention Heatmap</h2>
+                <p>The highlighted regions indicate areas the AI model considered most influential when determining authenticity.</p>
+              </div>
+            </div>
+
+            <div className="twocol">
+              <div>
+                <div className="panel" style={{ padding: '16px' }}>
+                  <div style={{ marginBottom: '12px', fontSize: '14px', fontWeight: '600', color: '#fff' }}>Original Image</div>
+                  <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img 
+                      src={imagePreviewUrl || ''} 
+                      alt="Original uploaded image" 
+                      style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '400px', objectFit: 'contain' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div className="panel" style={{ padding: '16px' }}>
+                  <div style={{ marginBottom: '12px', fontSize: '14px', fontWeight: '600', color: '#fff' }}>Grad-CAM Heatmap</div>
+                  <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img 
+                      src={heatmapUrl} 
+                      alt="Grad-CAM heatmap visualization" 
+                      style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '400px', objectFit: 'contain' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* DETECTED FACES */}
+      {uploadResponse?.success && faceBoxes && faceBoxes.length > 0 && (
+        <section className="ds-section" style={{ marginTop: '80px', paddingTop: '32px' }}>
+          <div className="container">
+            <div className="section-head-row">
+              <div>
+                <h2><i className="ti ti-face-id" />Detected Faces</h2>
+                <p>Facial regions identified in the uploaded image for analysis.</p>
+              </div>
+            </div>
+
+            <div className="panel" style={{ padding: '24px' }}>
+              <FaceDetectionOverlay 
+                imageUrl={imagePreviewUrl} 
+                faceBoxes={faceBoxes}
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* FULL RESOLUTION MODAL */}
+      {isModalOpen && imagePreviewUrl && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.9)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div 
+            style={{ 
+              position: 'relative', 
+              maxWidth: '90vw', 
+              maxHeight: '90vh',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src={imagePreviewUrl} 
+              alt="Full resolution image" 
+              style={{ 
+                maxWidth: '100%', 
+                maxHeight: '90vh',
+                objectFit: 'contain',
+                borderRadius: '8px'
+              }}
+            />
+            <button
+              onClick={() => setIsModalOpen(false)}
+              style={{
+                position: 'absolute',
+                top: '-40px',
+                right: '0',
+                background: 'rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                color: '#fff',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '18px'
+              }}
+            >
+              <i className="ti ti-x" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* FACE DETECTION + GRAD-CAM */}
       <section className="ds-section">
@@ -538,22 +843,62 @@ export default function DeepfakeDetectionClient() {
             </div>
 
             <div className="face-list">
-              {analysisResult?.faceAnalysis && analysisResult.faceAnalysis.length > 0 ? (
-                analysisResult.faceAnalysis.map((face) => (
-                  <div key={face.id} className="face-row">
-                    <div className="face-thumb"><i className="ti ti-user" /></div>
-                    <div className="face-info"><strong>{face.label}</strong><span>{face.description}</span></div>
-                    <div className="face-score" style={{ color: face.fakeScore > 50 ? '#F0594F' : '#F0934A' }}>{face.fakeScore}% fake</div>
+              {uploadResponse?.face_found ? (
+                <div style={{
+                  padding: '20px',
+                  background: 'rgba(139, 92, 246, 0.1)',
+                  border: '1px solid #8B5CF6',
+                  borderRadius: '12px'
+                }}>
+                  <h3 style={{ 
+                    fontSize: '16px', 
+                    fontWeight: '700', 
+                    color: '#fff', 
+                    marginBottom: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <i className="ti ti-face-id" style={{ color: '#8B5CF6' }} />
+                    Face Analysis Summary
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#14C8A8', fontSize: '14px' }}>
+                      <i className="ti ti-check" />
+                      <span>Face Detection Active</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#14C8A8', fontSize: '14px' }}>
+                      <i className="ti ti-check" />
+                      <span>Faces Detected: {uploadResponse?.faces_detected || 0}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#14C8A8', fontSize: '14px' }}>
+                      <i className="ti ti-check" />
+                      <span>{(uploadResponse?.faces_detected || 0) > 1 ? 'Group Image Detected' : 'Single Face Detected'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#14C8A8', fontSize: '14px' }}>
+                      <i className="ti ti-check" />
+                      <span>Analysis Complete</span>
+                    </div>
                   </div>
-                ))
+                  <div style={{ 
+                    marginTop: '16px', 
+                    padding: '12px', 
+                    background: 'rgba(255,255,255,0.05)', 
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    color: '#ccc',
+                    lineHeight: '1.5'
+                  }}>
+                    <strong style={{ color: '#fff', display: 'block', marginBottom: '4px' }}>Risk Context:</strong>
+                    Faces identified successfully and included in authenticity analysis.
+                  </div>
+                </div>
               ) : (
                 <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>
                   <i className="ti ti-face-id" style={{ fontSize: 32, marginBottom: 8 }} />
-                  <p>Face detection not available</p>
-                  <span style={{ fontSize: 12 }}>Face analysis requires additional ML models</span>
+                  <p>No faces detected in uploaded image</p>
                 </div>
               )}
-              <a href="#" className="btn-outline" style={{ marginTop: 6, justifyContent: 'center' }}>View full face analysis report</a>
             </div>
           </div>
         </div>
@@ -662,13 +1007,13 @@ export default function DeepfakeDetectionClient() {
                 <tr><th>File</th><th>Date</th><th>Authenticity</th><th>Risk</th><th>Report</th></tr>
               </thead>
               <tbody>
-                {analysisResult?.history.map((item) => (
-                  <tr key={item.id}>
-                    <td><div className="file-cell"><div className="file-icon"><i className={item.fileType === 'video' ? 'ti ti-video' : 'ti ti-photo'} /></div><div><strong>{item.fileName}</strong><span>{item.fileSize}</span></div></div></td>
-                    <td>{item.date}</td>
-                    <td><span className={`badge ${item.authenticityScore < 50 ? 'badge-red' : item.authenticityScore < 70 ? 'badge-orange' : 'badge-teal'}`}>{item.authenticityScore}% authentic</span></td>
-                    <td><span className={`badge ${item.riskLevel === 'high' ? 'badge-orange' : item.riskLevel === 'medium' ? 'badge-orange' : ''}`} style={item.riskLevel === 'low' ? { background: 'rgba(20,200,168,0.15)', color: '#5EEAD0' } : undefined}>{item.riskLevel.charAt(0).toUpperCase() + item.riskLevel.slice(1)}</span></td>
-                    <td><span className="dl-btn"><i className="ti ti-download" />PDF</span></td>
+                {historyData.map((record, index) => (
+                  <tr key={record.id || index}>
+                    <td><div className="file-cell"><div className="file-icon"><i className="ti ti-photo" /></div><div><strong>{record.filename}</strong><span>{record.fileSize || 'Unknown'}</span></div></div></td>
+                    <td>{new Date(record.upload_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                    <td><span className={`badge ${record.authenticity_score < 50 ? 'badge-red' : record.authenticity_score < 70 ? 'badge-orange' : 'badge-teal'}`}>{record.authenticity_score}% authentic</span></td>
+                    <td><span className={`badge ${record.risk_level === 'high' ? 'badge-orange' : record.risk_level === 'medium' ? 'badge-orange' : ''}`} style={record.risk_level === 'low' ? { background: 'rgba(20,200,168,0.15)', color: '#5EEAD0' } : undefined}>{record.risk_level.charAt(0).toUpperCase() + record.risk_level.slice(1)}</span></td>
+                    <td><span className="dl-btn" onClick={() => handleHistoryDownload(record)} style={{ cursor: 'pointer' }}><i className="ti ti-download" />PDF</span></td>
                   </tr>
                 ))}
               </tbody>

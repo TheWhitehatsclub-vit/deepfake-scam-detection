@@ -8,9 +8,14 @@ import './screenshot-analysis.css';
 export default function ScreenshotAnalysisPage() {
   const [activeTab, setActiveTab] = useState<'upload' | 'paste'>('upload');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
   const handleImageUpload = (imageData: string) => {
     setUploadedImage(imageData);
+  };
+
+  const handleFileUpload = (file: File) => {
+    setUploadedFile(file);
   };
 
   return (
@@ -45,6 +50,8 @@ export default function ScreenshotAnalysisPage() {
             onTabChange={setActiveTab} 
             onImageUpload={handleImageUpload}
             uploadedImage={uploadedImage}
+            uploadedFile={uploadedFile}
+            onFileUpload={handleFileUpload}
           />
         </div>
       </section>
