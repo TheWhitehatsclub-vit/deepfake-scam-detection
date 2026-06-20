@@ -1,37 +1,78 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import './details.css';
 
+interface CheckResult {
+  score: number;
+  status: string;
+  details: string;
+}
+
+interface ScamResult {
+  url: string;
+  domain: string;
+  trust_score: number;
+  overall_status: string;
+  checks: {
+    domain_age: CheckResult;
+    ssl_certificate: CheckResult;
+    url_structure: CheckResult;
+    brand_similarity: CheckResult;
+    suspicious_keywords: CheckResult;
+    reputation: CheckResult;
+  };
+}
+
+const riskLabel = (status: string) => {
+  if (status === 'danger') return 'High Risk';
+  if (status === 'warning') return 'Medium Risk';
+  return 'Low Risk';
+};
+
 export default function ScamDetailsPage() {
+  const [result, setResult] = useState<ScamResult | null>(null);
+
+  useEffect(() => {
+    const raw = localStorage.getItem('scam_result');
+    if (raw) setResult(JSON.parse(raw));
+  }, []);
+
+  if (!result) {
+    return (
+      <div className="container" style={{ padding: '2rem' }}>
+        <p>No analysis found. <Link href="/scam-detection">Run a new scan.</Link></p>
+      </div>
+    );
+  }
+
+  const { url, domain, trust_score, checks } = result;
+
   const websiteInfo = [
-    { label: 'URL', value: 'https://amaz0n-pay-secure.xyz' },
-    { label: 'Domain', value: 'amaz0n-pay-secure.xyz' },
-    { label: 'IP Address', value: '185.23.45.67' },
-    { label: 'Server Location', value: 'United States' },
-    { label: 'Domain Age', value: '5 Days' },
-    { label: 'SSL Status', value: 'Invalid / Self-signed' },
-    { label: 'HTTPS', value: 'Yes' },
+    { label: 'URL', value: url },
+    { label: 'Domain', value: domain },
+    { label: 'Domain Age', value: checks.domain_age.details },
+    { label: 'SSL Status', value: checks.ssl_certificate.details },
   ];
 
   const summaryItems = [
-    { label: 'Domain Age', risk: 'High Risk' },
-    { label: 'SSL Certificate', risk: 'High Risk' },
-    { label: 'URL Structure', risk: 'High Risk' },
-    { label: 'Brand Similarity', risk: 'High Risk' },
-    { label: 'Suspicious Keywords', risk: 'High Risk' },
-    { label: 'Reputation Check', risk: 'High Risk' },
-    { label: 'Content Analysis', risk: 'Medium Risk' },
-    { label: 'Trust Score', risk: '18/100' },
+    { label: 'Domain Age', risk: riskLabel(checks.domain_age.status) },
+    { label: 'SSL Certificate', risk: riskLabel(checks.ssl_certificate.status) },
+    { label: 'URL Structure', risk: riskLabel(checks.url_structure.status) },
+    { label: 'Brand Similarity', risk: riskLabel(checks.brand_similarity.status) },
+    { label: 'Suspicious Keywords', risk: riskLabel(checks.suspicious_keywords.status) },
+    { label: 'Reputation Check', risk: riskLabel(checks.reputation.status) },
+    { label: 'Trust Score', risk: `${trust_score}/100` },
   ];
 
   const allChecks = [
-    { name: 'Domain Age Analysis', result: '5 days old', risk: 'High Risk' },
-    { name: 'SSL Certificate Verification', result: 'Self-signed', risk: 'High Risk' },
-    { name: 'URL Structure Analysis', result: 'Suspicious pattern', risk: 'High Risk' },
-    { name: 'Brand Similarity Detection', result: 'Amazon impersonation', risk: 'High Risk' },
-    { name: 'Suspicious Keyword Detection', result: 'Multiple alerts', risk: 'High Risk' },
-    { name: 'Reputation Analysis', result: 'Blacklisted', risk: 'High Risk' },
+    { name: 'Domain Age Analysis', result: checks.domain_age.details, risk: riskLabel(checks.domain_age.status) },
+    { name: 'SSL Certificate Verification', result: checks.ssl_certificate.details, risk: riskLabel(checks.ssl_certificate.status) },
+    { name: 'URL Structure Analysis', result: checks.url_structure.details, risk: riskLabel(checks.url_structure.status) },
+    { name: 'Brand Similarity Detection', result: checks.brand_similarity.details, risk: riskLabel(checks.brand_similarity.status) },
+    { name: 'Suspicious Keyword Detection', result: checks.suspicious_keywords.details, risk: riskLabel(checks.suspicious_keywords.status) },
+    { name: 'Reputation Analysis', result: checks.reputation.details, risk: riskLabel(checks.reputation.status) },
   ];
 
   return (
@@ -46,7 +87,6 @@ export default function ScamDetailsPage() {
         </div>
       </div>
 
-      {/* HEADER */}
       <section className="details-header">
         <div className="container">
           <h1 className="h-title">Detailed Analysis</h1>
@@ -54,7 +94,6 @@ export default function ScamDetailsPage() {
         </div>
       </section>
 
-      {/* WEBSITE INFORMATION */}
       <section className="info-section">
         <div className="container">
           <div className="info-card">
@@ -71,7 +110,6 @@ export default function ScamDetailsPage() {
         </div>
       </section>
 
-      {/* SUMMARY */}
       <section className="summary-section">
         <div className="container">
           <div className="summary-card">
@@ -90,7 +128,6 @@ export default function ScamDetailsPage() {
         </div>
       </section>
 
-      {/* ALL CHECKS */}
       <section className="checks-section">
         <div className="container">
           <div className="checks-card">

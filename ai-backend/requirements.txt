@@ -45,3 +45,13 @@ typing-inspection==0.4.2
 typing_extensions==4.15.0
 uvicorn==0.49.0
 pytesseract==0.3.13
+
+# scam website detection
+python-whois
+tldextract
+rapidfuzz
+beautifulsoup4
+httpx
+python-dotenv
+anthropic
+google-genai

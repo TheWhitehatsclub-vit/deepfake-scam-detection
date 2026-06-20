@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, Circle } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import './analyzing.css';
 
 export default function ScamAnalyzingPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
+  const [error, setError] = useState('');
 
   const steps = [
     'Extracting domain and URL data',
@@ -19,24 +21,66 @@ export default function ScamAnalyzingPage() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentStep((prev) => {
-        if (prev < steps.length - 1) {
-          return prev + 1;
+      setCurrentStep((prev) => (prev < steps.length - 1 ? prev + 1 : prev));
+    }, 1000);
+
+    const runAnalysis = async () => {
+      try {
+        const url = localStorage.getItem('scam_url');
+        if (!url) {
+          router.push('/scam-detection');
+          return;
         }
-        return prev;
-      });
-    }, 1500);
 
+        const response = await fetch('http://127.0.0.1:8000/api/scam-website/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+
+        if (!response.ok) throw new Error('API request failed');
+
+        const data = await response.json();
+        localStorage.setItem('scam_result', JSON.stringify(data));
+
+        // save to Supabase history — don't block navigation if this fails
+        try {
+          await supabase.from('scam_website_history').insert({
+            url: data.url,
+            domain: data.domain,
+            trust_score: data.trust_score,
+            overall_status: data.overall_status,
+            checks: data.checks,
+          });
+        } catch (saveErr) {
+          console.error('Failed to save history:', saveErr);
+        }
+
+        clearInterval(interval);
+        router.push('/scam-detection/results');
+
+      } catch (err) {
+        setError('Analysis failed. Please try again.');
+        clearInterval(interval);
+      }
+    };
+
+    runAnalysis();
     return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      router.push('/scam-detection/results');
-    }, 3000);
-
-    return () => clearTimeout(timeout);
   }, [router]);
+
+  if (error) {
+    return (
+      <div className="analyzing-page">
+        <div className="container">
+          <div className="analyzing-content">
+            <p style={{ color: 'red' }}>{error}</p>
+            <button onClick={() => router.push('/scam-detection')}>Go Back</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="analyzing-page">
@@ -70,13 +114,9 @@ export default function ScamAnalyzingPage() {
             {steps.map((step, index) => (
               <div key={index} className="checklist-item">
                 {index <= currentStep ? (
-                  <div className="check-icon completed">
-                    <Check size={16} />
-                  </div>
+                  <div className="check-icon completed"><Check size={16} /></div>
                 ) : (
-                  <div className="check-icon pending">
-                    <Circle size={16} />
-                  </div>
+                  <div className="check-icon pending"><Circle size={16} /></div>
                 )}
                 <span className={index <= currentStep ? 'completed' : 'pending'}>{step}</span>
               </div>

@@ -329,3 +329,44 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Dynamic status colors */
+.risk-summary-card.status-safe {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0.04));
+  border-color: rgba(34, 197, 94, 0.3);
+}
+.risk-summary-card.status-safe .risk-icon {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #22C55E;
+}
+.risk-summary-card.status-safe .risk-status strong,
+.risk-summary-card.status-safe .risk-score {
+  color: #22C55E;
+}
+.risk-summary-card.status-safe .risk-progress-fill {
+  background: linear-gradient(90deg, #22C55E, #16A34A);
+}
+.risk-summary-card.status-safe .risk-actions {
+  border-top-color: rgba(34, 197, 94, 0.2);
+}
+
+.risk-summary-card.status-warning {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.12), rgba(234, 179, 8, 0.04));
+  border-color: rgba(234, 179, 8, 0.3);
+}
+.risk-summary-card.status-warning .risk-icon {
+  background: rgba(234, 179, 8, 0.15);
+  border-color: rgba(234, 179, 8, 0.3);
+  color: #EAB308;
+}
+.risk-summary-card.status-warning .risk-status strong,
+.risk-summary-card.status-warning .risk-score {
+  color: #EAB308;
+}
+.risk-summary-card.status-warning .risk-progress-fill {
+  background: linear-gradient(90deg, #EAB308, #F59E0B);
+}
+.risk-summary-card.status-warning .risk-actions {
+  border-top-color: rgba(234, 179, 8, 0.2);
+}

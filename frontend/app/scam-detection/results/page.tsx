@@ -1,20 +1,64 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ShieldAlert, Share2, AlertTriangle, Ban, Tag, Lock, FileText, Brain, Clock } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, ShieldQuestion, Share2, AlertTriangle, Ban, Tag, Lock, FileText, Brain, Clock } from 'lucide-react';
 import './results.css';
 
-export default function ScamResultsPage() {
-  const handleShare = () => {
-    console.log('Share result action');
-  };
+interface CheckResult {
+  score: number;
+  status: string;
+  details: string;
+}
 
-  const indicators = [
-    { icon: AlertTriangle, label: 'Low Domain Age', description: 'Domain registered recently' },
-    { icon: Ban, label: 'Blacklisted', description: 'Flagged by security databases' },
-    { icon: Tag, label: 'Suspicious Keywords', description: 'Phishing-related terms detected' },
-    { icon: Lock, label: 'SSL Issues', description: 'Invalid or self-signed certificate' },
-  ];
+interface ScamResult {
+  url: string;
+  domain: string;
+  trust_score: number;
+  overall_status: string;
+  checks: {
+    domain_age: CheckResult;
+    ssl_certificate: CheckResult;
+    url_structure: CheckResult;
+    brand_similarity: CheckResult;
+    suspicious_keywords: CheckResult;
+    reputation: CheckResult;
+  };
+}
+
+export default function ScamResultsPage() {
+  const [result, setResult] = useState<ScamResult | null>(null);
+
+  useEffect(() => {
+    const raw = localStorage.getItem('scam_result');
+    if (raw) setResult(JSON.parse(raw));
+  }, []);
+
+  if (!result) {
+    return (
+      <div className="container" style={{ padding: '2rem' }}>
+        <p>No results found. <Link href="/scam-detection">Run a new scan.</Link></p>
+      </div>
+    );
+  }
+
+  const { trust_score, overall_status, checks, url } = result;
+
+  // dynamic risk label and icon
+  const riskConfig = {
+    safe:    { label: 'Safe',         sub: 'This website appears legitimate and safe to visit.',                          Icon: ShieldCheck   },
+    warning: { label: 'Suspicious',   sub: 'This website has some concerning signals. Proceed with caution.',             Icon: ShieldQuestion },
+    danger:  { label: 'High Risk',    sub: 'This website shows strong signs of scam, phishing, or malicious activity.',   Icon: ShieldAlert   },
+  }[overall_status] ?? { label: 'Unknown', sub: '', Icon: ShieldQuestion };
+
+  // build dynamic indicators from checks that are warning/danger
+  const indicators = Object.entries(checks)
+    .filter(([, v]) => v.status !== 'safe')
+    .map(([key, v]) => ({
+      icon: key === 'ssl_certificate' ? Lock : key === 'domain_age' ? Clock : key === 'brand_similarity' ? Ban : Tag,
+      label: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      description: v.details,
+    }));
 
   return (
     <>
@@ -28,12 +72,11 @@ export default function ScamResultsPage() {
         </div>
       </div>
 
-      {/* HEADER */}
       <section className="results-header">
         <div className="container header-inner">
           <div className="header-left">
             <h1 className="h-title">Analysis Complete</h1>
-            <p className="header-sub">Here's what we found about this website.</p>
+            <p className="header-sub">Results for: <strong>{url}</strong></p>
           </div>
           <div className="header-right">
             <div className="time-badge">
@@ -44,25 +87,24 @@ export default function ScamResultsPage() {
         </div>
       </section>
 
-      {/* RISK SUMMARY CARD */}
       <section className="risk-section">
         <div className="container">
-          <div className="risk-summary-card">
+          <div className={`risk-summary-card status-${overall_status}`}>
             <div className="risk-summary-inner">
               <div className="risk-left">
                 <div className="risk-icon">
-                  <ShieldAlert size={48} />
+                  <riskConfig.Icon size={48} />
                 </div>
                 <div className="risk-status">
-                  <strong>High Risk</strong>
-                  <span>This website shows strong signs of scam, phishing, or malicious activity.</span>
+                  <strong>{riskConfig.label}</strong>
+                  <span>{riskConfig.sub}</span>
                 </div>
               </div>
               <div className="risk-right">
                 <div className="risk-score-label">Trust Score</div>
-                <div className="risk-score">18/100</div>
+                <div className="risk-score">{trust_score}/100</div>
                 <div className="risk-progress-track">
-                  <div className="risk-progress-fill" style={{ width: '18%' }} />
+                  <div className="risk-progress-fill" style={{ width: `${trust_score}%` }} />
                 </div>
                 <div className="risk-progress-labels">
                   <span>Unsafe</span>
@@ -74,7 +116,7 @@ export default function ScamResultsPage() {
               <Link href="/scam-detection" className="btn-outline">
                 Scan Another Website
               </Link>
-              <button className="btn-outline" onClick={handleShare}>
+              <button className="btn-outline" onClick={() => navigator.clipboard?.writeText(url)}>
                 <Share2 size={16} />
                 Share Result
               </button>
@@ -83,7 +125,6 @@ export default function ScamResultsPage() {
         </div>
       </section>
 
-      {/* NAVIGATION ACTIONS */}
       <section className="nav-actions-section">
         <div className="container">
           <div className="nav-actions-grid">
@@ -112,27 +153,28 @@ export default function ScamResultsPage() {
         </div>
       </section>
 
-      {/* RISK INDICATORS */}
-      <section className="flag-section">
-        <div className="container">
-          <div className="flag-reasons-card">
-            <h3>Risk Indicators</h3>
-            <div className="flag-reasons-grid">
-              {indicators.map((indicator, index) => (
-                <div key={index} className="flag-reason-item">
-                  <div className="flag-reason-icon">
-                    <indicator.icon size={20} />
+      {indicators.length > 0 && (
+        <section className="flag-section">
+          <div className="container">
+            <div className="flag-reasons-card">
+              <h3>Risk Indicators</h3>
+              <div className="flag-reasons-grid">
+                {indicators.map((indicator, index) => (
+                  <div key={index} className="flag-reason-item">
+                    <div className="flag-reason-icon">
+                      <indicator.icon size={20} />
+                    </div>
+                    <div className="flag-reason-content">
+                      <strong>{indicator.label}</strong>
+                      <span>{indicator.description}</span>
+                    </div>
                   </div>
-                  <div className="flag-reason-content">
-                    <strong>{indicator.label}</strong>
-                    <span>{indicator.description}</span>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </>
   );
 }

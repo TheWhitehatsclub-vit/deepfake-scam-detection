@@ -14,6 +14,8 @@ export default function ScamDetectionPage() {
 
   const handleAnalyze = () => {
     if (hasInput) {
+      // save URL so analyzing page can pick it up
+      localStorage.setItem('scam_url', url);
       router.push('/scam-detection/analyzing');
     }
   };
@@ -37,7 +39,6 @@ export default function ScamDetectionPage() {
         </div>
       </div>
 
-      {/* HERO */}
       <section className="hero">
         <div className="container hero-inner">
           <div>
@@ -49,7 +50,6 @@ export default function ScamDetectionPage() {
         </div>
       </section>
 
-      {/* INPUT CARD */}
       <section className="input-section">
         <div className="container">
           <div className="input-card">
@@ -63,7 +63,6 @@ export default function ScamDetectionPage() {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
             />
-            
             <div className="action-row">
               <button className="btn-primary btn-lg" disabled={!hasInput} onClick={handleAnalyze}>
                 Analyze Website <i className="ti ti-arrow-right" style={{ fontSize: 14 }} />
