@@ -22,7 +22,7 @@ SCAM_KEYWORDS = [
     'government', 'tax', 'irs', 'income tax', 'gst',
     'arrest', 'legal', 'court', 'police', 'investigation',
     'family emergency', 'hospital', 'medical', 'accident',
-    'job offer', 'salary', 'work from home', 'easy money'
+    'job offer', 'salary', 'work from home', 'easy money','unusual activity','fraudulent','account owner','verify account','fraud prevention','confirm account','account suspended'
 ]
 
 URGENT_LANGUAGE_PATTERNS = [
@@ -41,7 +41,9 @@ SUSPICIOUS_URL_PATTERNS = [
     r'https?://[^\s]*login-[^\s]*',
     r'https?://[^\s]*verify-[^\s]*',
     r'https?://[^\s]*secure-[^\s]*',
-    r'https?://[^\s]*account-[^\s]*'
+    r'https?://[^\s]*account-[^\s]*',r'bit\.ly/[^\s]+',
+r'tinyurl\.com/[^\s]+',
+r'goo\.gl/[^\s]+'
 ]
 
 PHONE_PATTERNS = [
@@ -99,6 +101,9 @@ async def analyze_screenshot(file) -> Dict:
         keyword_findings = check_scam_keywords(text)
         findings.extend(keyword_findings['findings'])
         scam_score += keyword_findings['score']
+        brand_findings = check_brand_impersonation(text)
+        findings.extend(brand_findings['findings'])
+        scam_score += brand_findings['score']
         
         # 2. Check for urgent language
         urgent_findings = check_urgent_language(text)
@@ -186,7 +191,7 @@ def check_scam_keywords(text: str) -> Dict:
             found_keywords.append(keyword)
     
     if found_keywords:
-        score = min(len(found_keywords) * 5, 30)
+        score = min(len(found_keywords) * 8, 50)
         findings.append({
             "category": "suspicious_keywords",
             "description": f"Found {len(found_keywords)} scam-related keywords: {', '.join(found_keywords[:5])}",
@@ -230,7 +235,7 @@ def check_suspicious_urls(text: str) -> Dict:
         suspicious_urls.extend(matches)
     
     if suspicious_urls:
-        score = min(len(suspicious_urls) * 10, 20)
+        score = min(len(suspicious_urls) * 25, 40)
         findings.append({
             "category": "suspicious_urls",
             "description": f"Found {len(suspicious_urls)} potentially suspicious URL patterns",
@@ -330,6 +335,39 @@ def check_qr_indicators(text: str) -> Dict:
         })
     
     return {"findings": findings, "score": score}
+def check_brand_impersonation(text: str) -> Dict:
+    findings = []
+
+    brands = [
+        'amazon',
+        'paypal',
+        'google',
+        'microsoft',
+        'apple',
+        'bank'
+    ]
+
+    found = []
+
+    for brand in brands:
+        if brand in text:
+            found.append(brand)
+
+    if found:
+        return {
+            "findings": [{
+                "category": "brand_impersonation",
+                "description": f"Possible impersonation of {', '.join(found)}",
+                "severity": "high",
+                "count": len(found)
+            }],
+            "score": 30
+        }
+
+    return {
+        "findings": [],
+        "score": 0
+    }
 
 
 def determine_risk_level(score: int) -> str:
