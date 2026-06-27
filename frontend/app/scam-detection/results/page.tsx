@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ShieldAlert, ShieldCheck, ShieldQuestion, Share2, AlertTriangle, Ban, Tag, Lock, FileText, Brain, Clock } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, ShieldQuestion, Share2, AlertTriangle, Ban, Tag, Lock, FileText, Brain, Clock, FileWarning } from 'lucide-react';
 import './results.css';
 
 interface CheckResult {
@@ -23,6 +23,7 @@ interface ScamResult {
     brand_similarity: CheckResult;
     suspicious_keywords: CheckResult;
     reputation: CheckResult;
+    content_analysis?: CheckResult;
   };
 }
 
@@ -44,20 +45,26 @@ export default function ScamResultsPage() {
 
   const { trust_score, overall_status, checks, url } = result;
 
-  // dynamic risk label and icon
   const riskConfig = {
     safe:    { label: 'Safe',         sub: 'This website appears legitimate and safe to visit.',                          Icon: ShieldCheck   },
     warning: { label: 'Suspicious',   sub: 'This website has some concerning signals. Proceed with caution.',             Icon: ShieldQuestion },
     danger:  { label: 'High Risk',    sub: 'This website shows strong signs of scam, phishing, or malicious activity.',   Icon: ShieldAlert   },
   }[overall_status] ?? { label: 'Unknown', sub: '', Icon: ShieldQuestion };
 
-  // build dynamic indicators from checks that are warning/danger
+  const iconFor = (key: string) => {
+    if (key === 'ssl_certificate') return Lock;
+    if (key === 'domain_age') return Clock;
+    if (key === 'brand_similarity') return Ban;
+    if (key === 'content_analysis') return FileWarning;
+    return Tag;
+  };
+
   const indicators = Object.entries(checks)
-    .filter(([, v]) => v.status !== 'safe')
+    .filter(([, v]) => v && v.status !== 'safe')
     .map(([key, v]) => ({
-      icon: key === 'ssl_certificate' ? Lock : key === 'domain_age' ? Clock : key === 'brand_similarity' ? Ban : Tag,
+      icon: iconFor(key),
       label: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-      description: v.details,
+      description: v!.details,
     }));
 
   return (

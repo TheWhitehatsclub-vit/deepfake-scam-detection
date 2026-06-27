@@ -16,6 +16,17 @@ from services.scam_brand_similarity import check_brand_similarity
 from services.scam_keywords import check_keywords
 from services.scam_reputation import check_reputation
 from services.scam_scorer import calculate_trust_score
+from services.scam_content import check_content
+from services.scam_explainer import generate_explanation
+
+import socket
+
+def domain_resolves(domain: str) -> bool:
+    try:
+        socket.gethostbyname(domain)
+        return True
+    except socket.gaierror:
+        return False
 
 app = FastAPI()
 
@@ -67,6 +78,25 @@ async def check_scam_website(request: ScamCheckRequest):
     extracted = tldextract.extract(url)
     domain = f"{extracted.domain}.{extracted.suffix}"
 
+    # NEW: hard check — does this domain even exist on the internet?
+    if not domain_resolves(domain):
+        return {
+            "url": url,
+            "domain": domain,
+            "trust_score": 5,
+            "overall_status": "danger",
+            "explanation": f"The domain '{domain}' does not resolve to any active website. This could mean the site doesn't exist, has been taken down, or the URL was never valid. Non-existent or unreachable domains are a strong indicator of scam links, expired phishing campaigns, or fake URLs.",
+            "checks": {
+                "domain_age": {"score": 100, "status": "danger", "details": "Domain does not resolve — does not exist or is unreachable.", "age_days": None},
+                "ssl_certificate": {"score": 100, "status": "danger", "details": "Cannot verify SSL — domain unreachable.", "issuer": None, "days_remaining": None},
+                "url_structure": check_url_structure(url),
+                "brand_similarity": check_brand_similarity(url),
+                "suspicious_keywords": check_keywords(url),
+                "reputation": {"score": 50, "status": "warning", "details": "Could not check reputation — domain unreachable.", "details": "Domain unreachable, reputation check skipped."},
+                "content_analysis": {"score": 100, "status": "danger", "details": "Cannot analyze content — domain unreachable.", "flags": ["Domain does not resolve"]},
+            },
+        }
+
     checks = {
         "domain_age":          check_domain_age(domain),
         "ssl_certificate":     check_ssl(domain),
@@ -74,14 +104,17 @@ async def check_scam_website(request: ScamCheckRequest):
         "brand_similarity":    check_brand_similarity(url),
         "suspicious_keywords": check_keywords(url),
         "reputation":          await check_reputation(url),
+        "content_analysis":    await check_content(url),
     }
 
     scoring = calculate_trust_score(checks)
+    explanation = generate_explanation(url, checks, scoring["trust_score"], scoring["overall_status"])
 
     return {
         "url": url,
         "domain": domain,
         "trust_score": scoring["trust_score"],
         "overall_status": scoring["overall_status"],
+        "explanation": explanation,
         "checks": checks,
     }

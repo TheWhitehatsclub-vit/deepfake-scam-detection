@@ -4,6 +4,12 @@ from datetime import datetime, timezone
 def check_domain_age(domain: str) -> dict:
     try:
         w = whois.whois(domain)
+        print(f"\nDEBUG ===== WHOIS raw response for '{domain}' =====")
+        print(w)
+        print(f"DEBUG domain_name field: {w.domain_name}")
+        print(f"DEBUG creation_date field: {w.creation_date}")
+        print("DEBUG ===== END =====\n")
+
         creation = w.creation_date
         if isinstance(creation, list):
             creation = creation[0]
