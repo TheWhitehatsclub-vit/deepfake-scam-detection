@@ -31,5 +31,5 @@ Do not use bullet points. Write in plain English."""
         )
         return response.text
     except Exception as e:
-        # graceful fallback if API fails — page still works
+        print(f"DEBUG: Gemini API error: {repr(e)}")  # temporary debug line
         return f"This website received a trust score of {trust_score}/100 and is classified as {status}. Please review the detailed checks below for more information."

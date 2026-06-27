@@ -22,6 +22,7 @@ interface ScamResult {
     brand_similarity: CheckResult;
     suspicious_keywords: CheckResult;
     reputation: CheckResult;
+    content_analysis?: CheckResult;
   };
 }
 
@@ -63,6 +64,7 @@ export default function ScamDetailsPage() {
     { label: 'Brand Similarity', risk: riskLabel(checks.brand_similarity.status) },
     { label: 'Suspicious Keywords', risk: riskLabel(checks.suspicious_keywords.status) },
     { label: 'Reputation Check', risk: riskLabel(checks.reputation.status) },
+    ...(checks.content_analysis ? [{ label: 'Content Analysis', risk: riskLabel(checks.content_analysis.status) }] : []),
     { label: 'Trust Score', risk: `${trust_score}/100` },
   ];
 
@@ -73,6 +75,7 @@ export default function ScamDetailsPage() {
     { name: 'Brand Similarity Detection', result: checks.brand_similarity.details, risk: riskLabel(checks.brand_similarity.status) },
     { name: 'Suspicious Keyword Detection', result: checks.suspicious_keywords.details, risk: riskLabel(checks.suspicious_keywords.status) },
     { name: 'Reputation Analysis', result: checks.reputation.details, risk: riskLabel(checks.reputation.status) },
+    ...(checks.content_analysis ? [{ name: 'Website Content Analysis', result: checks.content_analysis.details, risk: riskLabel(checks.content_analysis.status) }] : []),
   ];
 
   return (
