@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const ALLOWED_FORMATS = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-const FASTAPI_BACKEND_URL = 'http://127.0.0.1:8000/analyze-screenshot';
+const FASTAPI_BACKEND_URL =
+  'http://127.0.0.1:8000/analyze';
 
 export async function POST(request: NextRequest) {
   try {
